@@ -1,3 +1,4 @@
+# app/routers/expenses.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
@@ -23,17 +24,18 @@ def get_expense_stats(
     """
     使用策略模式 (Strategy Pattern) 進行分析
     """
-    # 1. 取得資料 (Service 層)
     all_expenses = expense_service.get_expenses(db)
-    
-    # 2. 取得策略 (Factory)
     strategy = analysis_service.get_strategy(type)
-    
-    # 3. 執行分析 (Context)
     analyzer = analysis_service.ExpenseAnalyzer(strategy)
     result = analyzer.execute(all_expenses)
-    
     return {"analysis_type": type, "result": result}
+
+@router.get("/{expense_id}", response_model=ExpenseResponse)
+def read_expense(expense_id: int, db: Session = Depends(deps.get_db)):
+    expense = expense_service.get_expense(db, expense_id)
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+    return expense
 
 @router.delete("/{expense_id}")
 def delete_expense(expense_id: int, db: Session = Depends(deps.get_db)):
